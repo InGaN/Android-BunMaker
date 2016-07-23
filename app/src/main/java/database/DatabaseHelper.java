@@ -1,11 +1,11 @@
 package database;
 
-import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 import android.provider.BaseColumns;
+import android.util.Log;
 
 
 import com.kevinmatsubara.japanesesentencemaker.Bun;
@@ -20,26 +20,16 @@ public class DatabaseHelper implements BaseColumns{
     private Context context;
     private DatabaseInitializer db_init;
 
-    private enum Query {
-        SELECT(0), INSERT(1);
-        private final int number;
-        Query(int number) {
-            this.number = number;
-        }
-        public int getNumber() {
-            return number;
-        }
-    }
-
     public DatabaseHelper(Context context) {
         this.context = context;
         db_init = new DatabaseInitializer(context);
     }
 
-    public boolean create_database() {
+    public boolean createMainTables() {
         try {
             SQLiteDatabase db = db_init.getWritableDatabase();
-            db.execSQL(DatabaseInitializer.SQL_CREATE_ENTRIES);
+            db.execSQL(DatabaseInitializer.SQL_CREATE_ENTRIES_MAIN);
+            db.execSQL(DatabaseInitializer.SQL_CREATE_ENTRIES_CATEGORIES);
         }
         catch (SQLiteException ex) {
             return false;
@@ -47,18 +37,33 @@ public class DatabaseHelper implements BaseColumns{
         return true;
     }
 
-    public boolean delete_database() {
+    public boolean createCategoryTable(String name) {
         try {
             SQLiteDatabase db = db_init.getWritableDatabase();
-            db.execSQL(DatabaseInitializer.SQL_DELETE_ENTRIES);
-            return !check_if_table_exists();
+            String sql =    "CREATE TABLE " + name + " (" +
+                            DatabaseInitializer.COLUMN_NAME_ID + " INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, " +
+                            DatabaseInitializer.COLUMN_NAME_KANJI + " varchar(255), " +
+                            DatabaseInitializer.COLUMN_NAME_FURIGANA + " varchar(255), " +
+                            DatabaseInitializer.COLUMN_NAME_MEANING + " varchar(255) ) ";
+            db.execSQL(sql);
+        }
+        catch (SQLiteException ex) {
+            return false;
+        }
+        return true;
+    }
+
+    public boolean deleteDatabase() {
+        try {
+            context.deleteDatabase(DatabaseInitializer.DATABASE_NAME);
+            return !checkIfTableExists();
         }
         catch (SQLiteException ex) {
             return false;
         }
     }
 
-    public boolean check_if_table_exists() {
+    public boolean checkIfTableExists() {
         try {
             DatabaseInitializer helper = new DatabaseInitializer(context);
             SQLiteDatabase db = helper.getReadableDatabase();
@@ -81,44 +86,37 @@ public class DatabaseHelper implements BaseColumns{
         }
     }
 
-    private Cursor query(String query, String[] values, Query type) {
-        if(!check_if_table_exists()) {
-            //throw Exception;
-            return null;
-        }
+    public int getTableSize(String table) {
+        Cursor cursor = querySelect("SELECT * FROM " + table, null);
+        if(cursor == null)
+            return 0;
+        return cursor.getCount();
+    }
+
+    private Cursor querySelect(String query, String[] values) {
         Cursor cursor;
-
-        switch(type) {
-            case SELECT:
-                SQLiteDatabase db = db_init.getReadableDatabase();
-                cursor = db.rawQuery(query, values);
-                break;
-            case INSERT:
-                cursor = null;
-                break;
-            default:
-                cursor = null;
-                break;
-        }
-
-        // if null, throw exception
+        SQLiteDatabase dbr = db_init.getReadableDatabase();
+        cursor = dbr.rawQuery(query, values);
         return cursor;
     }
 
-    public Bun get_random_sentence() {
-        Cursor cursor = query(
+    private void queryInsert(String query, String[] values) {
+        SQLiteDatabase dbw= db_init.getWritableDatabase();
+        dbw.execSQL(query, values);
+    }
+
+    public Bun getRandomSentence() {
+        Cursor cursor = querySelect(
                 "SELECT * FROM " + DatabaseInitializer.TABLE_NAME_MAIN + " ORDER BY RANDOM() LIMIT ?",
-                new String[]{"1"},
-                Query.SELECT);
+                new String[]{"1"});
         cursor.moveToFirst();
         return new Bun(cursor.getInt(0), cursor.getString(1), cursor.getString(2), cursor.getString(3));
     }
 
-    public ArrayList<Bun> get_sentences() {
-        Cursor cursor = query(
+    public ArrayList<Bun> getSentences() {
+        Cursor cursor = querySelect(
                 "SELECT * FROM " + DatabaseInitializer.TABLE_NAME_MAIN + "",
-                new String[]{},
-                Query.SELECT);
+                new String[]{});
 
 
         ArrayList<Bun> sentences = new ArrayList<>();
@@ -132,47 +130,40 @@ public class DatabaseHelper implements BaseColumns{
             ));
             cursor.moveToNext();
         }
-
-
         return sentences;
     }
 
-    public boolean insert_sentence(String kanji, String furigana, String meaning) {
-        SQLiteDatabase db = db_init.getWritableDatabase();
+    public String[] getCategoryTypes() {
+        Cursor cursor = querySelect(
+                "SELECT * FROM " + DatabaseInitializer.TABLE_NAME_CATEGORIES + "",
+                null);
 
-        ContentValues values = new ContentValues();
-        values.put(DatabaseInitializer.COLUMN_NAME_KANJI, kanji);
-        values.put(DatabaseInitializer.COLUMN_NAME_FURIGANA, furigana);
-        values.put(DatabaseInitializer.COLUMN_NAME_MEANING, meaning);
-
-        long newRowId;
-        newRowId = db.insert(
-                DatabaseInitializer.TABLE_NAME_MAIN,
-                DatabaseInitializer.COLUMN_NAME_KANJI,
-                values
-        );
-
-        return (newRowId != -1);
+        String[] arr = new String[cursor.getCount()];
+        cursor.moveToFirst();
+        for(int x = 0; x < cursor.getCount(); x++) {
+            arr[x] = cursor.getString(1);
+            cursor.moveToNext();
+        }
+        Log.d("LOG", ""+cursor.getCount());
+        return arr;
     }
 
-    public boolean create_new_category(String tableName) {
-        String sql = "CREATE TABLE " + tableName + " (" +
-                DatabaseInitializer.COLUMN_NAME_ID + " INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, " +
-                DatabaseInitializer.COLUMN_NAME_KANJI + " varchar(255), " +
-                DatabaseInitializer.COLUMN_NAME_FURIGANA + " varchar(255), " +
-                DatabaseInitializer.COLUMN_NAME_MEANING + " varchar(255) )";
-
-        DatabaseInitializer helper = new DatabaseInitializer(context);
-        SQLiteDatabase db = helper.getWritableDatabase();
-        db.execSQL(sql);
-        return false;
+    public void insertSentence(String furigana, String kanji, String meaning) {
+        queryInsert(
+                "INSERT INTO " + DatabaseInitializer.TABLE_NAME_MAIN + " VALUES (null, ?, ?, ?)",
+                new String[]{furigana, kanji, meaning});
     }
 
-    public boolean delete_category(String tableName) {
-        String sql = "DROP TABLE IF EXISTS " + tableName;
-        DatabaseInitializer helper = new DatabaseInitializer(context);
-        SQLiteDatabase db = helper.getWritableDatabase();
-        db.execSQL(sql);
-        return false;
+    public void insertCategoryType(String name) {
+        queryInsert(
+                "INSERT INTO " + DatabaseInitializer.TABLE_NAME_CATEGORIES + " VALUES (null, ?)",
+                new String[]{name});
+        createCategoryTable(name);
+    }
+
+    public void insertCategoryItem(String category, String furigana, String kanji, String meaning) {
+        queryInsert(
+                "INSERT INTO " + category + " VALUES (null, ?, ?, ?)",
+                new String[]{furigana, kanji, meaning});
     }
 }

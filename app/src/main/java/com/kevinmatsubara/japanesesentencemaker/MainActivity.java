@@ -20,6 +20,7 @@ import android.widget.TextView;
 import java.util.ArrayList;
 
 import database.DatabaseHelper;
+import database.DatabaseInitializer;
 
 public class MainActivity extends AppCompatActivity {
     public static String PACKAGE_NAME;
@@ -46,7 +47,7 @@ public class MainActivity extends AppCompatActivity {
         btn_db.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(db.create_database()) {
+                if(db.createMainTables()) {
                     showAlert(MainActivity.this, "WELCOME", "You made a database.");
                     SharedPreferences settings = getSharedPreferences(SettingsActivity.PREFERENCES_FILE_NAME, 0);
                     initializeSentences(settings);
@@ -61,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
         btn_del.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                db.delete_database();
+                db.deleteDatabase();
                 showAlert(MainActivity.this, "WELCOME", "Database deleted.");
                 label.setText("-");
             }
@@ -71,10 +72,14 @@ public class MainActivity extends AppCompatActivity {
         btn_check.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(db.check_if_table_exists()) {
+                if(db.checkIfTableExists()) {
                     showAlert(MainActivity.this, "WELCOME", "it exists.");
-
-                    label.setText(db.get_random_sentence().get_kanji());
+                    if(db.getTableSize(DatabaseInitializer.TABLE_NAME_MAIN) > 0) {
+                        label.setText(db.getRandomSentence().get_kanji());
+                    }
+                    else {
+                        label.setText("You have no sentences inside the database!");
+                    }
                 }
                 else {
                     showAlert(MainActivity.this, "ERROR", "it does NOT exist.");
@@ -95,11 +100,7 @@ public class MainActivity extends AppCompatActivity {
 
     private ArrayList<Bun> getSentencesFromDatabase(SharedPreferences settings) {
         DatabaseHelper db = new DatabaseHelper(MainActivity.this);
-
-        for(int x = 0; x < 50; x++) {
-            db.insert_sentence("KANJI" + x, "FURIGANA", "MEANING");
-        }
-        return db.get_sentences();
+        return db.getSentences();
     }
 
     @Override
@@ -123,8 +124,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch(item.getItemId()) {
-            case R.id.action_settings:
-                callSettings();
+            case R.id.action_input:
+                callInputActivity();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -160,8 +161,8 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void callSettings() {
-        Intent intent = new Intent(this, SettingsActivity.class);
+    private void callInputActivity() {
+        Intent intent = new Intent(this, InputActivity.class);
         startActivity(intent);
     }
 }

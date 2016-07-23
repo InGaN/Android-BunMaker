@@ -26,7 +26,8 @@
         </activity>
         <activity
             android:name=".InputActivity"
-            android:label="@string/title_activity_input" >
+            android:label="@string/title_activity_input"
+            android:screenOrientation="landscape" >
         </activity>
     </application>
 

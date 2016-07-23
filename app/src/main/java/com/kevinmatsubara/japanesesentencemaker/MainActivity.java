@@ -1,22 +1,117 @@
 package com.kevinmatsubara.japanesesentencemaker;
 
+import android.content.Context;
+import android.content.DialogInterface;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.SpannableString;
+import android.text.method.LinkMovementMethod;
+import android.text.util.Linkify;
+import android.util.TypedValue;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
+import android.content.SharedPreferences;
+import android.content.Intent;
+import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
+
+import java.util.ArrayList;
+
+import database.DatabaseHelper;
 
 public class MainActivity extends AppCompatActivity {
-
     public static String PACKAGE_NAME;
+    private DatabaseHelper db;
+
+    Button btn_db;
+    Button btn_del;
+    Button btn_check;
+    TextView label;
+
+    ArrayList<Bun> sentences;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         PACKAGE_NAME = getApplicationContext().getPackageName();
+
+        db = new DatabaseHelper(MainActivity.this);
+
+        label =  (TextView)findViewById(R.id.lbl_main);
+        btn_db = (Button)findViewById(R.id.btn_db);
+        btn_db.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(db.create_database()) {
+                    showAlert(MainActivity.this, "WELCOME", "You made a database.");
+                    SharedPreferences settings = getSharedPreferences(SettingsActivity.PREFERENCES_FILE_NAME, 0);
+                    initializeSentences(settings);
+                }
+                else {
+                    showAlert(MainActivity.this, "ERROR", "You have no sentences.");
+                }
+            }
+        });
+
+        btn_del = (Button)findViewById(R.id.btn_del);
+        btn_del.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                db.delete_database();
+                showAlert(MainActivity.this, "WELCOME", "Database deleted.");
+                label.setText("-");
+            }
+        });
+
+        btn_check = (Button)findViewById(R.id.btn_check);
+        btn_check.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(db.check_if_table_exists()) {
+                    showAlert(MainActivity.this, "WELCOME", "it exists.");
+
+                    label.setText(db.get_random_sentence().get_kanji());
+                }
+                else {
+                    showAlert(MainActivity.this, "ERROR", "it does NOT exist.");
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onResume() {
+        SharedPreferences settings = getSharedPreferences(SettingsActivity.PREFERENCES_FILE_NAME, 0);
+        super.onResume();
+    }
+
+    private void initializeSentences(SharedPreferences settings) {
+        sentences = getSentencesFromDatabase(settings);
+    }
+
+    private ArrayList<Bun> getSentencesFromDatabase(SharedPreferences settings) {
+        DatabaseHelper db = new DatabaseHelper(MainActivity.this);
+
+        for(int x = 0; x < 50; x++) {
+            db.insert_sentence("KANJI" + x, "FURIGANA", "MEANING");
+        }
+        return db.get_sentences();
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if(keyCode == KeyEvent.KEYCODE_BACK) {
+            Intent intent = new Intent(Intent.ACTION_MAIN);
+            intent.addCategory(Intent.CATEGORY_HOME);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
     }
 
     @Override
@@ -27,12 +122,46 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
-
-        if (id == R.id.action_settings) {
-            return true;
+        switch(item.getItemId()) {
+            case R.id.action_settings:
+                callSettings();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
         }
+    }
 
-        return super.onOptionsItemSelected(item);
+    public static void showAlert(Context context, String title, String message) {
+        final SpannableString s = new SpannableString(message);
+        Linkify.addLinks(s, Linkify.WEB_URLS);
+
+        android.app.AlertDialog alertDialog = new android.app.AlertDialog.Builder(context).create();
+        alertDialog.setTitle(title);
+        alertDialog.setMessage(s);
+        alertDialog.setButton(android.app.AlertDialog.BUTTON_NEUTRAL, "OK",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                });
+        alertDialog.show();
+        TextView textView = (TextView) alertDialog.findViewById(android.R.id.message);
+        textView.setMovementMethod(LinkMovementMethod.getInstance());
+        textView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+    }
+
+    static void FisherYatesShuffleArray(int[] array) {
+        int n = array.length;
+        for (int i = 0; i < array.length; i++) {
+            int random = i + (int) (Math.random() * (n - i));
+            int randomElement = array[random];
+            array[random] = array[i];
+            array[i] = randomElement;
+        }
+    }
+
+    private void callSettings() {
+        Intent intent = new Intent(this, SettingsActivity.class);
+        startActivity(intent);
     }
 }

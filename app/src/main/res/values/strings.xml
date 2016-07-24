@@ -3,15 +3,19 @@
 
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
+    <string name="action_sentences">Sentences</string>
 
     <string name="title_activity_settings">Settings</string>
     <string name="title_activity_input">Input new</string>
+    <string name="title_activity_list">Lists</string>
 
     <string name="inputHintFurigana">input Furigana...</string>
     <string name="inputHintKanji">input Kanji...</string>
     <string name="inputHintMeaning">input Meaning...</string>
     <string name="addNew">add new</string>
     <string name="insertCategoryItem">insert item</string>
+    <string name="mainEmptyListMessage">List is empty...</string>
+
 
     <string name="inputNewSentence">Add new sentence</string>
     <string name="inputNewCategoryType">Add new category type</string>

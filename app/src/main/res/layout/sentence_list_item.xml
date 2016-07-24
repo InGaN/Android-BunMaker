@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent">
+
+    <TextView
+        android:id="@+id/lbl_item_id"
+        android:textSize="15dp"
+        android:text="ID"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+    <TextView
+        android:id="@+id/lbl_item_furigana"
+        android:textSize="12dp"
+        android:text="furigana"
+        android:layout_toRightOf="@id/lbl_item_id"
+        android:layout_marginLeft="10dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+    <TextView
+        android:id="@+id/lbl_item_kanji"
+        android:textSize="15dp"
+        android:text="KANJI"
+        android:layout_below="@id/lbl_item_furigana"
+        android:layout_toRightOf="@id/lbl_item_id"
+        android:layout_marginLeft="10dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+    <TextView
+        android:id="@+id/lbl_item_meaning"
+        android:textSize="12dp"
+        android:text="meaning"
+        android:layout_below="@id/lbl_item_kanji"
+        android:layout_toRightOf="@id/lbl_item_id"
+        android:layout_marginLeft="10dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+</RelativeLayout>

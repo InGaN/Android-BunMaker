@@ -8,7 +8,7 @@ import android.provider.BaseColumns;
 import android.util.Log;
 
 
-import com.kevinmatsubara.japanesesentencemaker.Bun;
+import com.kevinmatsubara.japanesesentencemaker.Sentence;
 
 import java.util.ArrayList;
 
@@ -40,7 +40,7 @@ public class DatabaseHelper implements BaseColumns{
     public boolean createCategoryTable(String name) {
         try {
             SQLiteDatabase db = db_init.getWritableDatabase();
-            String sql =    "CREATE TABLE " + name + " (" +
+            String sql =    "CREATE TABLE " + DatabaseInitializer.CATEGORY_PRE + name + " (" +
                             DatabaseInitializer.COLUMN_NAME_ID + " INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, " +
                             DatabaseInitializer.COLUMN_NAME_KANJI + " varchar(255), " +
                             DatabaseInitializer.COLUMN_NAME_FURIGANA + " varchar(255), " +
@@ -105,24 +105,32 @@ public class DatabaseHelper implements BaseColumns{
         dbw.execSQL(query, values);
     }
 
-    public Bun getRandomSentence() {
+    public Sentence getRandomSentence() {
         Cursor cursor = querySelect(
                 "SELECT * FROM " + DatabaseInitializer.TABLE_NAME_MAIN + " ORDER BY RANDOM() LIMIT ?",
                 new String[]{"1"});
         cursor.moveToFirst();
-        return new Bun(cursor.getInt(0), cursor.getString(1), cursor.getString(2), cursor.getString(3));
+        return new Sentence(cursor.getInt(0), cursor.getString(1), cursor.getString(2), cursor.getString(3));
     }
 
-    public ArrayList<Bun> getSentences() {
+    public String getRandomCategoryItem(String category) {
+        Cursor cursor = querySelect(
+                "SELECT * FROM " + DatabaseInitializer.CATEGORY_PRE + category + " ORDER BY RANDOM() LIMIT ?",
+                new String[]{"1"});
+        cursor.moveToFirst();
+        return cursor.getString(1);
+    }
+
+    public ArrayList<Sentence> getSentences() {
         Cursor cursor = querySelect(
                 "SELECT * FROM " + DatabaseInitializer.TABLE_NAME_MAIN + "",
                 new String[]{});
 
 
-        ArrayList<Bun> sentences = new ArrayList<>();
+        ArrayList<Sentence> sentences = new ArrayList<>();
         cursor.moveToFirst();
         for (int x = 0; x < cursor.getCount(); x++) {
-            sentences.add(new Bun(
+            sentences.add(new Sentence(
                     Integer.parseInt(cursor.getString(0)),
                     cursor.getString(1),
                     cursor.getString(2),
@@ -148,6 +156,25 @@ public class DatabaseHelper implements BaseColumns{
         return arr;
     }
 
+    public ArrayList<Sentence> getCategoryItems(String type) {
+        Cursor cursor = querySelect(
+                "SELECT * FROM " + DatabaseInitializer.CATEGORY_PRE + type + "",
+                new String[]{});
+
+        ArrayList<Sentence> sentences = new ArrayList<>();
+        cursor.moveToFirst();
+        for (int x = 0; x < cursor.getCount(); x++) {
+            sentences.add(new Sentence(
+                    Integer.parseInt(cursor.getString(0)),
+                    cursor.getString(1),
+                    cursor.getString(2),
+                    cursor.getString(3)
+            ));
+            cursor.moveToNext();
+        }
+        return sentences;
+    }
+
     public void insertSentence(String furigana, String kanji, String meaning) {
         queryInsert(
                 "INSERT INTO " + DatabaseInitializer.TABLE_NAME_MAIN + " VALUES (null, ?, ?, ?)",
@@ -163,7 +190,7 @@ public class DatabaseHelper implements BaseColumns{
 
     public void insertCategoryItem(String category, String furigana, String kanji, String meaning) {
         queryInsert(
-                "INSERT INTO " + category + " VALUES (null, ?, ?, ?)",
+                "INSERT INTO " + DatabaseInitializer.CATEGORY_PRE + category + " VALUES (null, ?, ?, ?)",
                 new String[]{furigana, kanji, meaning});
     }
 }

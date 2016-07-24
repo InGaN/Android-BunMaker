@@ -29,6 +29,11 @@
             android:label="@string/title_activity_input"
             android:screenOrientation="landscape" >
         </activity>
+        <activity
+            android:name=".ListActivity"
+            android:label="@string/title_activity_list" >
+            android:screenOrientation="landscape" >
+        </activity>
     </application>
 
 </manifest>

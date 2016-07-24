@@ -13,20 +13,13 @@
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true" />
 
-    <Spinner
-        android:id="@+id/spn_inputCategoryType"
-        android:layout_width="fill_parent"
-        android:layout_weight="1"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/spn_inputType" />
-
     <EditText
         android:id="@+id/tbx_addFurigana"
         android:hint="@string/inputHintFurigana"
         android:maxLength="80"
         android:singleLine="true"
         android:layout_width="fill_parent"
-        android:layout_below="@id/spn_inputCategoryType"
+        android:layout_below="@id/spn_inputType"
         android:layout_height="wrap_content" />
 
     <EditText

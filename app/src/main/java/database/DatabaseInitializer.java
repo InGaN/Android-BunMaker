@@ -25,6 +25,8 @@ public class DatabaseInitializer extends SQLiteOpenHelper {
     public static final String COLUMN_NAME_MEANING = "meaning";
     public static final String COLUMN_NAME_CATEGORY = "category";
 
+    public static final String CATEGORY_PRE = "category_";
+
     public static final String SQL_CREATE_ENTRIES_MAIN =
             "CREATE TABLE " + TABLE_NAME_MAIN + " (" +
                     COLUMN_NAME_ID + " INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, " +

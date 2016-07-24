@@ -7,4 +7,9 @@
         android:title="@string/title_activity_input"
         android:orderInCategory="100"
         app:showAsAction="never" />
+    <item
+        android:id="@+id/action_list"
+        android:title="@string/title_activity_list"
+        android:orderInCategory="200"
+        app:showAsAction="never" />
 </menu>

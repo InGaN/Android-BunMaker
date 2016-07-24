@@ -31,7 +31,7 @@ public class MainActivity extends AppCompatActivity {
     Button btn_check;
     TextView label;
 
-    ArrayList<Bun> sentences;
+    ArrayList<Sentence> sentences;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,7 +53,7 @@ public class MainActivity extends AppCompatActivity {
                     initializeSentences(settings);
                 }
                 else {
-                    showAlert(MainActivity.this, "ERROR", "You have no sentences.");
+                    showAlert(MainActivity.this, "ERROR", "You have no listItems.");
                 }
             }
         });
@@ -72,16 +72,14 @@ public class MainActivity extends AppCompatActivity {
         btn_check.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(db.checkIfTableExists()) {
-                    showAlert(MainActivity.this, "WELCOME", "it exists.");
-                    if(db.getTableSize(DatabaseInitializer.TABLE_NAME_MAIN) > 0) {
-                        label.setText(db.getRandomSentence().get_kanji());
+                if (db.checkIfTableExists()) {
+                    if (db.getTableSize(DatabaseInitializer.TABLE_NAME_MAIN) > 0) {
+                        String sentence = parseSentence(db.getRandomSentence().getKanji());
+                        label.setText(sentence);
+                    } else {
+                        label.setText("You have no listItems inside the database!");
                     }
-                    else {
-                        label.setText("You have no sentences inside the database!");
-                    }
-                }
-                else {
+                } else {
                     showAlert(MainActivity.this, "ERROR", "it does NOT exist.");
                 }
             }
@@ -98,9 +96,27 @@ public class MainActivity extends AppCompatActivity {
         sentences = getSentencesFromDatabase(settings);
     }
 
-    private ArrayList<Bun> getSentencesFromDatabase(SharedPreferences settings) {
+    private ArrayList<Sentence> getSentencesFromDatabase(SharedPreferences settings) {
         DatabaseHelper db = new DatabaseHelper(MainActivity.this);
         return db.getSentences();
+    }
+
+    private String parseSentence(String sentence) {
+        String[] cats = db.getCategoryTypes();
+        for(int x = 0; x < cats.length; x++) {
+            String category = cats[x];
+            String pattern = "<" + category + ">";
+            sentence = sentence.replaceAll(pattern, db.getRandomCategoryItem(category));
+        }
+        return sentence;
+    }
+
+    private String getCategoryItem(String placeholder) {
+        if(placeholder.substring(0,1).equals("<") && placeholder.substring(placeholder.length()-1,placeholder.length()).equals(">")) {
+            placeholder = placeholder.substring(1, (placeholder.length()-1));
+            return db.getRandomCategoryItem(placeholder);
+        }
+        return placeholder;
     }
 
     @Override
@@ -126,6 +142,9 @@ public class MainActivity extends AppCompatActivity {
         switch(item.getItemId()) {
             case R.id.action_input:
                 callInputActivity();
+                return true;
+            case R.id.action_list:
+                callListActivity();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -163,6 +182,11 @@ public class MainActivity extends AppCompatActivity {
 
     private void callInputActivity() {
         Intent intent = new Intent(this, InputActivity.class);
+        startActivity(intent);
+    }
+
+    private void callListActivity() {
+        Intent intent = new Intent(this, ListActivity.class);
         startActivity(intent);
     }
 }

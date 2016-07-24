@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -19,9 +20,9 @@ public class InputActivity extends AppCompatActivity {
     EditText tbx_furigana;
     EditText tbx_kanji;
     EditText tbx_meaning;
+    EditText lastSelectedEditText;
 
     Spinner spn_inputType;
-    Spinner spn_inputCategoryType;
     Spinner spn_inputCategoryItem;
 
     Button btn_addNew;
@@ -53,11 +54,11 @@ public class InputActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 if (spn_inputType.getSelectedItemId() == InsertType.SENTENCE.getID()) {
-                    insertNew(InsertType.SENTENCE);
+                    insertIntoDatabase(InsertType.SENTENCE);
                 } else if (spn_inputType.getSelectedItemId() == InsertType.CATEGORY_TYPE.getID()) {
-                    insertNew(InsertType.CATEGORY_TYPE);
+                    insertIntoDatabase(InsertType.CATEGORY_TYPE);
                 } else if (spn_inputType.getSelectedItemId() == InsertType.CATEGORY_ITEM.getID()) {
-                    insertNew(InsertType.CATEGORY_ITEM);
+                    insertIntoDatabase(InsertType.CATEGORY_ITEM);
                 }
             }
         });
@@ -66,9 +67,29 @@ public class InputActivity extends AppCompatActivity {
         btn_insertCategoryItem.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                tbx_furigana.setText(tbx_meaning.getText() + "<" + spn_inputCategoryItem.getSelectedItem().toString() + ">");
-                tbx_kanji.setText(tbx_meaning.getText() + "<" + spn_inputCategoryItem.getSelectedItem().toString() + ">");
-                tbx_meaning.setText(tbx_meaning.getText() + "<" + spn_inputCategoryItem.getSelectedItem().toString() + ">");
+                insertCategoryItem();
+            }
+        });
+
+        lastSelectedEditText = tbx_furigana;
+        tbx_furigana.setOnTouchListener(new View.OnTouchListener() {
+            public boolean onTouch(View arg0, MotionEvent arg1) {
+                lastSelectedEditText = tbx_furigana;
+                return false;
+            }
+        });
+        tbx_kanji.setOnTouchListener(new View.OnTouchListener() {
+            public boolean onTouch(View arg0, MotionEvent arg1)
+            {
+                lastSelectedEditText = tbx_kanji;
+                return false;
+            }
+        });
+        tbx_meaning.setOnTouchListener(new View.OnTouchListener() {
+            public boolean onTouch(View arg0, MotionEvent arg1)
+            {
+                lastSelectedEditText = tbx_meaning;
+                return false;
             }
         });
     }
@@ -90,45 +111,54 @@ public class InputActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private void insertNew(InsertType type) {
+    private void insertIntoDatabase(InsertType type) {
         switch (type) {
             case SENTENCE:
                 db.insertSentence(tbx_furigana.getText().toString(), tbx_kanji.getText().toString(), tbx_meaning.getText().toString());
                 break;
             case CATEGORY_TYPE:
-                db.insertCategoryType(tbx_meaning.getText().toString());
+                if(tbx_meaning.getText().toString().toLowerCase() != "listItems") {
+                    db.insertCategoryType(tbx_meaning.getText().toString());
 
-                ArrayAdapter<String> adapter = new ArrayAdapter(InputActivity.this, android.R.layout.simple_spinner_item, db.getCategoryTypes());
-                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                spn_inputCategoryItem.setAdapter(adapter);
+                    ArrayAdapter<String> adapter = new ArrayAdapter(InputActivity.this, android.R.layout.simple_spinner_item, db.getCategoryTypes());
+                    adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                    spn_inputCategoryItem.setAdapter(adapter);
+                }
+                else {
+                    MainActivity.showAlert(InputActivity.this, "ERROR", tbx_meaning.getText().toString().toLowerCase() + " is an invalid name for a category...");
+                }
                 break;
             case CATEGORY_ITEM:
-                db.insertCategoryItem(spn_inputCategoryType.getSelectedItem().toString(), tbx_furigana.getText().toString(), tbx_kanji.getText().toString(), tbx_meaning.getText().toString());
-                MainActivity.showAlert(InputActivity.this, "ERROR", spn_inputCategoryType.getSelectedItem().toString());
+                db.insertCategoryItem(spn_inputCategoryItem.getSelectedItem().toString(), tbx_furigana.getText().toString(), tbx_kanji.getText().toString(), tbx_meaning.getText().toString());
+                MainActivity.showAlert(InputActivity.this, "ERROR", spn_inputCategoryItem.getSelectedItem().toString());
                 break;
         }
 
-        tbx_furigana.setText("");
-        tbx_kanji.setText("");
-        tbx_meaning.setText("");
+        clearTextBoxes();
+    }
+
+    private void insertCategoryItem() {
+        int start = Math.max(lastSelectedEditText.getSelectionStart(), 0);
+        int end = Math.max(lastSelectedEditText.getSelectionEnd(), 0);
+        String insert = "<" + spn_inputCategoryItem.getSelectedItem().toString() + ">";
+
+        lastSelectedEditText.getText().replace(Math.min(start, end), Math.max(start, end),
+                insert, 0, insert.length());
     }
 
     private void setSpinners() {
         spn_inputType = (Spinner) findViewById(R.id.spn_inputType);
-        spn_inputCategoryType = (Spinner) findViewById(R.id.spn_inputCategoryType);
         spn_inputCategoryItem = (Spinner) findViewById(R.id.spn_inputCategoryItem);
 
         ArrayAdapter<CharSequence> adapter1 = ArrayAdapter.createFromResource(this, R.array.inputTypes, android.R.layout.simple_spinner_item);
         adapter1.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spn_inputType.setAdapter(adapter1);
 
-        Log.d("TEST", "" + db.getCategoryTypes().length);
-
         spn_inputType.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                clearTextBoxes();
                 if (id == InsertType.SENTENCE.getID()) {
-                    spn_inputCategoryType.setVisibility(View.GONE);
                     tbx_furigana.setVisibility(View.VISIBLE);
                     tbx_kanji.setVisibility(View.VISIBLE);
                     tbx_meaning.setVisibility(View.VISIBLE);
@@ -137,13 +167,11 @@ public class InputActivity extends AppCompatActivity {
                     if (db.getCategoryTypes().length > 0) {
                         btn_insertCategoryItem.setVisibility(View.VISIBLE);
                         spn_inputCategoryItem.setVisibility(View.VISIBLE);
-                    }
-                    else {
+                    } else {
                         btn_insertCategoryItem.setVisibility(View.GONE);
                         spn_inputCategoryItem.setVisibility(View.GONE);
                     }
                 } else if (id == InsertType.CATEGORY_TYPE.getID()) {
-                    spn_inputCategoryType.setVisibility(View.GONE);
                     spn_inputCategoryItem.setVisibility(View.GONE);
                     tbx_furigana.setVisibility(View.GONE);
                     tbx_kanji.setVisibility(View.GONE);
@@ -152,8 +180,7 @@ public class InputActivity extends AppCompatActivity {
                     btn_insertCategoryItem.setVisibility(View.GONE);
                 } else if (id == InsertType.CATEGORY_ITEM.getID()) {
                     if (db.getCategoryTypes().length > 0) {
-                        spn_inputCategoryType.setVisibility(View.VISIBLE);
-                        spn_inputCategoryItem.setVisibility(View.GONE);
+                        spn_inputCategoryItem.setVisibility(View.VISIBLE);
                         tbx_furigana.setVisibility(View.VISIBLE);
                         tbx_kanji.setVisibility(View.VISIBLE);
                         tbx_meaning.setVisibility(View.VISIBLE);
@@ -169,25 +196,18 @@ public class InputActivity extends AppCompatActivity {
 
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
-                spn_inputCategoryType.setVisibility(View.GONE);
             }
         });
 
-        spn_inputCategoryType.setVisibility(View.GONE);
         ArrayAdapter<String> adapter2 = new ArrayAdapter(this, android.R.layout.simple_spinner_item, db.getCategoryTypes());
         adapter2.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spn_inputCategoryType.setAdapter(adapter2);
-
-        spn_inputCategoryType.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-            }
-        });
 
         spn_inputCategoryItem.setAdapter(adapter2);
+    }
+
+    private void clearTextBoxes() {
+        tbx_furigana.setText("");
+        tbx_kanji.setText("");
+        tbx_meaning.setText("");
     }
 }

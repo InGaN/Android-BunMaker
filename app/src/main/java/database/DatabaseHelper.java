@@ -113,12 +113,17 @@ public class DatabaseHelper implements BaseColumns{
         return new Sentence(cursor.getInt(0), cursor.getString(1), cursor.getString(2), cursor.getString(3));
     }
 
-    public String getRandomCategoryItem(String category) {
+    public Sentence getRandomCategoryItem(String category) {
         Cursor cursor = querySelect(
                 "SELECT * FROM " + DatabaseInitializer.CATEGORY_PRE + category + " ORDER BY RANDOM() LIMIT ?",
                 new String[]{"1"});
-        cursor.moveToFirst();
-        return cursor.getString(1);
+        if(cursor.getCount() > 0) {
+            cursor.moveToFirst();
+        }
+        else {
+            return new Sentence(0, "EMPTY", "EMPTY", "EMPTY");
+        }
+        return new Sentence(cursor.getInt(0), cursor.getString(1), cursor.getString(2), cursor.getString(3));
     }
 
     public ArrayList<Sentence> getSentences() {
@@ -152,7 +157,7 @@ public class DatabaseHelper implements BaseColumns{
             arr[x] = cursor.getString(1);
             cursor.moveToNext();
         }
-        Log.d("LOG", ""+cursor.getCount());
+        Log.d("LOG", "" + cursor.getCount());
         return arr;
     }
 

@@ -29,7 +29,9 @@ public class MainActivity extends AppCompatActivity {
     Button btn_db;
     Button btn_del;
     Button btn_check;
-    TextView label;
+    TextView lbl_row_1;
+    TextView lbl_row_2;
+    TextView lbl_row_3;
 
     ArrayList<Sentence> sentences;
 
@@ -42,7 +44,10 @@ public class MainActivity extends AppCompatActivity {
 
         db = new DatabaseHelper(MainActivity.this);
 
-        label =  (TextView)findViewById(R.id.lbl_main);
+        lbl_row_1 =  (TextView)findViewById(R.id.lbl_main_row_1);
+        lbl_row_2 =  (TextView)findViewById(R.id.lbl_main_row_2);
+        lbl_row_3 =  (TextView)findViewById(R.id.lbl_main_row_3);
+
         btn_db = (Button)findViewById(R.id.btn_db);
         btn_db.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -64,7 +69,9 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 db.deleteDatabase();
                 showAlert(MainActivity.this, "WELCOME", "Database deleted.");
-                label.setText("-");
+                lbl_row_1.setText("-");
+                lbl_row_2.setText("-");
+                lbl_row_3.setText("-");
             }
         });
 
@@ -74,10 +81,14 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 if (db.checkIfTableExists()) {
                     if (db.getTableSize(DatabaseInitializer.TABLE_NAME_MAIN) > 0) {
-                        String sentence = parseSentence(db.getRandomSentence().getKanji());
-                        label.setText(sentence);
+                        Sentence sentence = parseSentence(db.getRandomSentence());
+                        lbl_row_1.setText(sentence.getFurigana());
+                        lbl_row_2.setText(sentence.getKanji());
+                        lbl_row_3.setText(sentence.getMeaning());
                     } else {
-                        label.setText("You have no listItems inside the database!");
+                        lbl_row_1.setText("You have no listItems inside the database!");
+                        lbl_row_2.setText("You have no listItems inside the database!");
+                        lbl_row_3.setText("You have no listItems inside the database!");
                     }
                 } else {
                     showAlert(MainActivity.this, "ERROR", "it does NOT exist.");
@@ -101,20 +112,28 @@ public class MainActivity extends AppCompatActivity {
         return db.getSentences();
     }
 
-    private String parseSentence(String sentence) {
-        String[] cats = db.getCategoryTypes();
-        for(int x = 0; x < cats.length; x++) {
-            String category = cats[x];
-            String pattern = "<" + category + ">";
-            sentence = sentence.replaceAll(pattern, db.getRandomCategoryItem(category));
-        }
-        return sentence;
-    }
+    private Sentence parseSentence(Sentence sentence) {
+        String[] categories = db.getCategoryTypes();
 
-    private String getCategoryItem(String placeholder) {
-        if(placeholder.substring(0,1).equals("<") && placeholder.substring(placeholder.length()-1,placeholder.length()).equals(">")) {
-            placeholder = placeholder.substring(1, (placeholder.length()-1));
-            return db.getRandomCategoryItem(placeholder);
+        boolean appendActive = false;
+        String term = "";
+
+        Sentence placeholder = new Sentence(sentence.getID(), sentence.getFurigana(), sentence.getKanji(), sentence.getMeaning());
+        for(int x = 0; x < sentence.getFurigana().toCharArray().length; x++) {
+            if (sentence.getFurigana().toCharArray()[x] == '>') {
+                appendActive = false;
+                Sentence categoryItem = db.getRandomCategoryItem(term); // call once
+                placeholder.setFurigana(placeholder.getFurigana().replaceFirst("<" + term + ">", categoryItem.getFurigana()));
+                placeholder.setKanji(placeholder.getKanji().replaceFirst("<" + term + ">", categoryItem.getKanji()));
+                placeholder.setMeaning(placeholder.getMeaning().replaceFirst("<" + term + ">", categoryItem.getMeaning()));
+                term = "";
+            }
+            if(appendActive) {
+                term += sentence.getFurigana().toCharArray()[x];
+            }
+            if (sentence.getFurigana().toCharArray()[x] == '<') {
+                appendActive = true;
+            }
         }
         return placeholder;
     }

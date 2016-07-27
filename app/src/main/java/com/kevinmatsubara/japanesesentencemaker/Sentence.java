@@ -13,10 +13,10 @@ public class Sentence {
     private String sentence;
     private String[] answers;
 
-    public Sentence(int id, String kanji, String furigana, String meaning){
+    public Sentence(int id, String furigana, String kanji, String meaning){
         this.id = id;
-        this.kanji = kanji;
         this.furigana = furigana;
+        this.kanji = kanji;
         this.meaning = meaning;
     }
 
@@ -34,5 +34,15 @@ public class Sentence {
 
     public String getMeaning() {
         return meaning;
+    }
+
+    public void setFurigana(String input) {
+        this.furigana = input;
+    }
+    public void setKanji(String input) {
+        this.kanji = input;
+    }
+    public void setMeaning(String input) {
+        this.meaning = input;
     }
 }
